@@ -4,10 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.gpedro.integrations.slack.SlackApi;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /*
@@ -18,13 +15,16 @@ public class Uptime {
     private Runtime rt = Runtime.getRuntime();
     private static SlackApi api = new SlackApi("https://hooks.slack.com/services/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");
 
+    public static String PRICE_NODE ="Price Node";
+    public static String SEED_NODE ="Seed Node";
+    public static String BTC_NODE ="Bitcoin Node";
+
     public static String PRICE_NODE_VERSION = "0.6.0";
     public static int LOOP_SLEEP_SECONDS = 60;
     public static int PROCESS_TIMEOUT_SECONDS = 20;
 
     public static List<String> clearnetBitcoinNodes = Arrays.asList(
             "138.68.117.247",
-            "62.178.187.80",
             "78.47.61.83",
             "174.138.35.229",
             "192.41.136.217",
@@ -53,6 +53,7 @@ public class Uptime {
     );
 
     Set<String> errorNodes = new HashSet<>();
+    HashMap<String, String> errorNodeMap = new HashMap<>();
 
     public void checkClearnetBitcoinNodes(List<String> ipAddresses) {
         checkBitcoinNode(ipAddresses, false);
@@ -150,14 +151,14 @@ public class Uptime {
     public void handlePricenodeError(String address, String result, String reason) {
         log.error("Error in pricenode, reason: {}, result: {}", reason, result);
         if (!isAlreadyBadNode(address)) {
-            SlackTool.send(api, "Price node: " + address, reason);
+            SlackTool.send(api, "Price node: " + address, appendBadNodes(reason));
         }
     }
 
     public void handleBitcoinNodeError(BitcoinNodeResult result, String reason) {
         log.error("Error in Bitcoin node {}, reason: {}", result.getAddress(), reason);
         if (!isAlreadyBadNode(result.getAddress())) {
-            SlackTool.send(api, "Bitcoin node: " + result.getAddress(), reason);
+            SlackTool.send(api, "Bitcoin node: " + result.getAddress(), appendBadNodes(reason));
         }
     }
 
@@ -169,12 +170,16 @@ public class Uptime {
     private void markAsGoodNode(String address) {
         boolean removed = errorNodes.remove(address);
         if (removed) {
-            SlackTool.send(api, address, "No longer in error");
+            SlackTool.send(api, address, appendBadNodes("No longer in error"));
         }
     }
 
     private boolean isAlreadyBadNode(String address) {
         return !errorNodes.add(address);
+    }
+
+    private String appendBadNodes(String body) {
+        return body + " (now " + errorNodes.size() + " nodes have errors)";
     }
 
     public static void main(String[] args) {
