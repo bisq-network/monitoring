@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     sudo \
     python \
     tor \
+    torsocks \
     python-dev \
     build-essential \
     python-pip && rm -rf /var/lib/apt/lists/*
@@ -25,8 +26,7 @@ RUN mvn clean install
 COPY start_tor.sh ./
 RUN  chmod +x *.sh
 WORKDIR ./src/main/python
-RUN pip install pipenv
-RUN pipenv install -r requirements.txt
+RUN pip install -r requirements.txt
 WORKDIR /bisq-uptime/
 
 CMD ./start_tor.sh && java -cp ./target/bisq-uptime*.jar io.bisq.uptime.Uptime

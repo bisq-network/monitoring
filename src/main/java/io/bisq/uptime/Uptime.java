@@ -124,7 +124,7 @@ public class Uptime {
             result.setAddress(address);
 
             try {
-                Process pr = rt.exec("pipenv run " + (overTor ? "torify " : "") + "python ./src/main/python/protocol.py " + address);
+                Process pr = rt.exec((overTor ? "torify " : "") + "python ./src/main/python/protocol.py " + address);
                 boolean noTimeout = pr.waitFor(PROCESS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 if (!noTimeout) {
                     handleError(nodeType, address, "Timeout");
@@ -195,7 +195,7 @@ public class Uptime {
     private boolean isAlreadyBadNode(String address, NodeType nodeType, String reason) {
         Optional<NodeInfo> any = findNodeInfoByAddress(address);
         if(any.isPresent()) {
-            return any.get().getErrorReason().add((reason.isEmpty())?"Empty reason":reason);
+            return any.get().getErrorReason().add((reason == null || reason.isEmpty())?"Empty reason":reason);
         }
         return !errorNodes.add(new NodeInfo(address, nodeType, Arrays.asList(reason)));
     }
@@ -249,7 +249,7 @@ public class Uptime {
                 uptime.checkPriceNodes(onionPriceNodes, true);
                 uptime.checkClearnetBitcoinNodes(clearnetBitcoinNodes);
                 uptime.checkOnionBitcoinNodes(onionBitcoinNodes);
-                //uptime.checkSeedNodes(seedNodes);
+                uptime.checkSeedNodes(seedNodes);
                 log.info("Stopping checks, now sleeping for {} seconds.", LOOP_SLEEP_SECONDS);
 
                 // prepare reporting
