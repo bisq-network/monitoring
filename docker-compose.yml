@@ -1,0 +1,14 @@
+version: '3'
+
+# Fill in your own BTCAVERAGE public and private keys
+
+services:
+    uptime:
+        build:
+            context: .
+        image: bisq:uptime
+    uptime-entropy:
+      restart: always
+      image: harbur/haveged:1.7c-1
+      container_name: haveged-entropy
+      privileged: true

@@ -16,11 +16,7 @@ public class Uptime {
     private Runtime rt = Runtime.getRuntime();
     private static SlackApi api = new SlackApi("https://hooks.slack.com/services/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");
 
-    public static String MONITORING_NODE = "Monitoring Node";
-    public static boolean DEBUG = true;
-    public static String PRICE_NODE = "Price Node";
-    public static String SEED_NODE = "Seed Node";
-    public static String BTC_NODE = "Bitcoin Node";
+    public static boolean DEBUG = false;
 
     public static String PRICE_NODE_VERSION = "0.6.0";
     public static int LOOP_SLEEP_SECONDS = 10 * 60;
@@ -33,6 +29,7 @@ public class Uptime {
             "138.68.117.247",
             "78.47.61.83",
             "174.138.35.229",
+            "80.233.134.60",
             "192.41.136.217",
             "5.189.166.193",
             "37.221.198.57"
@@ -43,7 +40,9 @@ public class Uptime {
             "poyvpdt762gllauu.onion",
             "r3dsojfhwcm7x7p6.onion",
             "vlf5i3grro3wux24.onion",
-            "3r44ddzjitznyahw.onion"
+            "3r44ddzjitznyahw.onion",
+            "i3a5xtzfm4xwtybd.onion",
+            "7sl6havdhtgefwo2.onion"
     );
 
     public static List<String> onionPriceNodes = Arrays.asList(
@@ -71,49 +70,52 @@ public class Uptime {
     }
 
     public void checkPriceNodes(List<String> ipAddresses, boolean overTor) {
+        NodeType nodeType = NodeType.PRICE_NODE;
         for (String address : ipAddresses) {
             BitcoinNodeResult result = new BitcoinNodeResult();
             result.setAddress(address);
 
             ProcessResult getFeesResult = executeProcess((overTor ? "torify " : "") + "curl " + address + (overTor ? "" : "8080") + "/getFees", PROCESS_TIMEOUT_SECONDS);
             if (getFeesResult.getError() != null) {
-                handleError(NodeType.PRICE_NODE, address, getFeesResult.getError());
+                handleError(nodeType, address, getFeesResult.getError());
                 continue;
             }
             boolean correct = getFeesResult.getResult().contains("btcTxFee");
             if (!correct) {
-                handleError(NodeType.PRICE_NODE, address, "Result does not contain expected keyword: " + getFeesResult.getResult());
+                handleError(nodeType, address, "Result does not contain expected keyword: " + getFeesResult.getResult());
                 continue;
             }
 
             ProcessResult getVersionResult = executeProcess((overTor ? "torify " : "") + "curl " + address + (overTor ? "" : "8080") + "/getVersion", PROCESS_TIMEOUT_SECONDS);
             if (getVersionResult.getError() != null) {
-                handleError(NodeType.PRICE_NODE, address, getVersionResult.getError());
+                handleError(nodeType, address, getVersionResult.getError());
                 continue;
             }
             correct = PRICE_NODE_VERSION.equals(getVersionResult.getResult());
             if (!correct) {
-                handleError(NodeType.PRICE_NODE, address, "Incorrect version:" + getVersionResult.getResult());
+                handleError(nodeType, address, "Incorrect version:" + getVersionResult.getResult());
                 continue;
             }
 
-            markAsGoodNode(address);
+            markAsGoodNode(nodeType, address);
         }
     }
 
     /** NOTE: does not work on MAC netcat version */
     public void checkSeedNodes(List<String> addresses) {
+        NodeType nodeType = NodeType.SEED_NODE;
         for (String address : addresses) {
             ProcessResult getFeesResult = executeProcess("./src/main/shell/seednodes.sh " + address, PROCESS_TIMEOUT_SECONDS);
             if (getFeesResult.getError() != null) {
-                handleError(NodeType.SEED_NODE, address, getFeesResult.getError());
+                handleError(nodeType, address, getFeesResult.getError());
                 continue;
             }
-            markAsGoodNode(address);
+            markAsGoodNode(nodeType, address);
         }
     }
 
     private void checkBitcoinNode(List<String> ipAddresses, boolean overTor) {
+        NodeType nodeType = NodeType.BITCOIN_NODE;
         for (String address : ipAddresses) {
             BitcoinNodeResult result = new BitcoinNodeResult();
             result.setAddress(address);
@@ -122,27 +124,27 @@ public class Uptime {
                 Process pr = rt.exec("pipenv run " + (overTor ? "torify " : "") + "python ./src/main/python/protocol.py " + address);
                 boolean noTimeout = pr.waitFor(PROCESS_TIMEOUT_SECONDS, TimeUnit.SECONDS);
                 if (!noTimeout) {
-                    handleError(NodeType.BITCOIN_NODE, address, "Timeout");
+                    handleError(nodeType, address, "Timeout");
                     continue;
                 }
                 String resultString = convertStreamToString(pr.getInputStream());
                 log.info(resultString.toString());
                 String[] splitResult = resultString.split(",");
                 if (splitResult.length != 4) {
-                    handleError(NodeType.BITCOIN_NODE, address, "Incorrect result length:" + resultString);
+                    handleError(nodeType, address, "Incorrect result length:" + resultString);
                     continue;
                 }
                 result.setVersion(splitResult[1]);
                 result.setHeight(Long.parseLong(splitResult[2]));
                 result.setServices(Integer.parseInt(splitResult[3].trim()));
             } catch (IOException e) {
-                handleError(NodeType.BITCOIN_NODE, address, e.getMessage());
+                handleError(nodeType, address, e.getMessage());
                 continue;
             } catch (InterruptedException e) {
-                handleError(NodeType.BITCOIN_NODE, address, e.getMessage());
+                handleError(nodeType, address, e.getMessage());
                 continue;
             }
-            markAsGoodNode(address);
+            markAsGoodNode(nodeType, address);
         }
     }
 
@@ -163,28 +165,36 @@ public class Uptime {
         return new ProcessResult(convertStreamToString(pr.getInputStream()), null);
     }
 
-    public void handleError(NodeType nodeType, String address, String reason) {
-        log.error("Error in {} {}, reason: {}", nodeType.toString(), address, reason);
-        if (!isAlreadyBadNode(address, nodeType, reason)) {
-            SlackTool.send(api, nodeType.toString() + " " + address, appendBadNodesSizeToString(reason));
-        }
-    }
-
     static String convertStreamToString(java.io.InputStream is) {
         java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
     }
 
-    private void markAsGoodNode(String address) {
-        Optional<NodeInfo> any = errorNodes.stream().filter(nodeInfo -> nodeInfo.getAddress().equals(address)).findAny();
-        if (any.isPresent()) {
-            boolean removed = errorNodes.remove(any.get());
-            SlackTool.send(api, address, appendBadNodesSizeToString("No longer in error"));
+    public void handleError(NodeType nodeType, String address, String reason) {
+        log.error("Error in {} {}, reason: {}", nodeType.toString(), address, reason);
+        if (!isAlreadyBadNode(address, nodeType, reason)) {
+            SlackTool.send(api, "Error: " + nodeType.getPrettyName() + " " + address, appendBadNodesSizeToString(reason));
         }
     }
 
+    private void markAsGoodNode(NodeType nodeType, String address) {
+        Optional<NodeInfo> any = findNodeInfoByAddress(address);
+        if (any.isPresent()) {
+            boolean removed = errorNodes.remove(any.get());
+            SlackTool.send(api, "Fixed: " + nodeType.getPrettyName() + " " + address, appendBadNodesSizeToString("No longer in error"));
+        }
+    }
+
+    private Optional<NodeInfo> findNodeInfoByAddress(String address) {
+        return errorNodes.stream().filter(nodeInfo -> nodeInfo.getAddress().equals(address)).findAny();
+    }
+
     private boolean isAlreadyBadNode(String address, NodeType nodeType, String reason) {
-        return !errorNodes.add(new NodeInfo(address, nodeType, reason));
+        Optional<NodeInfo> any = findNodeInfoByAddress(address);
+        if(any.isPresent()) {
+            return any.get().getErrorReason().add((reason.isEmpty())?"Empty reason":reason);
+        }
+        return !errorNodes.add(new NodeInfo(address, nodeType, Arrays.asList(reason)));
     }
 
     private String appendBadNodesSizeToString(String body) {
@@ -192,22 +202,43 @@ public class Uptime {
     }
 
     public String printErrorNodes() {
-        return errorNodes.stream().sorted().map(nodeInfo -> nodeInfo.getNodeType().toString() + "\t|\t" + nodeInfo.getAddress() + "\t" + nodeInfo.getErrorReason()).collect(Collectors.joining("\n"));
+        return errorNodes.stream().sorted().map(nodeInfo -> nodeInfo.getNodeType().toString() + "\t|\t" + nodeInfo.getAddress() + " : " + nodeInfo.getReasonListAsString()).collect(Collectors.joining("\n"));
     }
 
     public static void main(String[] args) {
+        /*
+        OptionParser parser = new OptionParser();
+        parser.allowsUnrecognizedOptions();
+        parser.accepts(AppOptionKeys.USER_DATA_DIR_KEY, description("User data directory", DEFAULT_USER_DATA_DIR))
+                .withRequiredArg();
+        parser.accepts(AppOptionKeys.APP_NAME_KEY, description("Application name", DEFAULT_APP_NAME))
+                .withRequiredArg();
+
+        OptionSet options;
+        try {
+            options = parser.parse(args);
+        } catch (OptionException ex) {
+            System.out.println("error: " + ex.getMessage());
+            System.out.println();
+            parser.printHelpOn(System.out);
+            System.exit(EXIT_FAILURE);
+            return;
+        }
+*/
+
         Uptime uptime = new Uptime();
+
         log.info("Startup. All nodes in error will be shown fully in this first run.");
-        SlackTool.send(api, MONITORING_NODE, "Startup. All nodes in error will be shown fully in this first run.");
+        SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), "Startup. All nodes in error will be shown fully in this first run.");
         int counter = 0;
         boolean isReportingLoop;
         while (true) {
             try {
                 log.info("Starting checks...");
-                //uptime.checkPriceNodes(onionPriceNodes, true);
-                //uptime.checkClearnetBitcoinNodes(clearnetBitcoinNodes);
-                //uptime.checkOnionBitcoinNodes(onionBitcoinNodes);
-                uptime.checkSeedNodes(seedNodes);
+                uptime.checkPriceNodes(onionPriceNodes, true);
+                uptime.checkClearnetBitcoinNodes(clearnetBitcoinNodes);
+                uptime.checkOnionBitcoinNodes(onionBitcoinNodes);
+                //uptime.checkSeedNodes(seedNodes);
                 log.info("Stopping checks, now sleeping for {} seconds.", LOOP_SLEEP_SECONDS);
 
                 // prepare reporting
@@ -216,10 +247,10 @@ public class Uptime {
                     String errorNodeOutputString = uptime.printErrorNodes();
                     if (!errorNodeOutputString.isEmpty()) {
                         log.info("Nodes in error: \n{}", errorNodeOutputString);
-                        SlackTool.send(api, MONITORING_NODE, "Nodes in error: \n" + errorNodeOutputString);
+                        SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), "Nodes in error: \n" + errorNodeOutputString);
                     } else {
                         log.info("No errors");
-                        SlackTool.send(api, MONITORING_NODE, "No errors");
+                        SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), "No errors");
                     }
                 }
 

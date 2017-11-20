@@ -30,5 +30,6 @@ __pycache__/
 
 *.lock
 .idea
+target/
 
 

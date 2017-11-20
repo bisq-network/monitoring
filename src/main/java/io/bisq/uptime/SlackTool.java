@@ -12,7 +12,11 @@ public class SlackTool {
 
     public static void send(SlackApi api, String username, String body) {
         if(!Uptime.DEBUG) {
-            api.call(new SlackMessage(username, body));
+            try {
+                api.call(new SlackMessage(username, body));
+            } catch (Throwable e) {
+                log.error("Couldn't send slack message", e);
+            }
         } else {
             log.info("Not logging due to debug");
         }
