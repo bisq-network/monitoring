@@ -957,7 +957,7 @@ def main(addr):
     handshake_msgs = []
     addr_msgs = []
 
-    conn = Connection(to_addr, to_services=to_services, proxy=["127.0.0.1",9050])
+    conn = Connection(to_addr, to_services=to_services, proxy=[])
     try:
         #print("open")
         conn.open()
