@@ -1,5 +1,8 @@
 package io.bisq.uptime;
 
+import joptsimple.OptionException;
+import joptsimple.OptionParser;
+import joptsimple.OptionSet;
 import lombok.extern.slf4j.Slf4j;
 import net.gpedro.integrations.slack.SlackApi;
 
@@ -14,9 +17,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class Uptime {
     private Runtime rt = Runtime.getRuntime();
-    private static SlackApi api = new SlackApi("https://hooks.slack.com/services/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");
+    private static SlackApi api;
 
-    public static boolean DEBUG = false;
+    public static boolean ENABLE_SLACK = false;
 
     public static String PRICE_NODE_VERSION = "0.6.0";
     public static int LOOP_SLEEP_SECONDS = 10 * 60;
@@ -205,13 +208,14 @@ public class Uptime {
         return errorNodes.stream().sorted().map(nodeInfo -> nodeInfo.getNodeType().toString() + "\t|\t" + nodeInfo.getAddress() + " : " + nodeInfo.getReasonListAsString()).collect(Collectors.joining("\n"));
     }
 
-    public static void main(String[] args) {
-        /*
+    public static void main(String[] args) throws IOException {
         OptionParser parser = new OptionParser();
         parser.allowsUnrecognizedOptions();
-        parser.accepts(AppOptionKeys.USER_DATA_DIR_KEY, description("User data directory", DEFAULT_USER_DATA_DIR))
+        final String USE_SLACK = "useSlack";
+        parser.accepts(USE_SLACK, "Output is posted to a slack channel")
                 .withRequiredArg();
-        parser.accepts(AppOptionKeys.APP_NAME_KEY, description("Application name", DEFAULT_APP_NAME))
+        final String SLACK_SECRET = "slackSecret";
+        parser.accepts(SLACK_SECRET, "The slack secret URL")
                 .withRequiredArg();
 
         OptionSet options;
@@ -221,10 +225,17 @@ public class Uptime {
             System.out.println("error: " + ex.getMessage());
             System.out.println();
             parser.printHelpOn(System.out);
-            System.exit(EXIT_FAILURE);
+            System.exit(-1);
             return;
         }
-*/
+
+        ENABLE_SLACK = options.has(USE_SLACK) ? (boolean) options.valueOf(USE_SLACK) : false;
+        log.info("Slack usage is set to {}", ENABLE_SLACK);
+        if(ENABLE_SLACK && options.has(SLACK_SECRET)) {
+            String secret = (String) options.valueOf(SLACK_SECRET);
+            log.info("Using slack secret: {}", secret);
+            api = new SlackApi(secret);
+        }
 
         Uptime uptime = new Uptime();
 

@@ -11,7 +11,7 @@ import net.gpedro.integrations.slack.SlackMessage;
 public class SlackTool {
 
     public static void send(SlackApi api, String username, String body) {
-        if(!Uptime.DEBUG) {
+        if(Uptime.ENABLE_SLACK) {
             try {
                 api.call(new SlackMessage(username, body));
             } catch (Throwable e) {
