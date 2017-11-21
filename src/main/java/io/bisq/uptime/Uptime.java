@@ -197,6 +197,7 @@ public class Uptime {
     private boolean isAlreadyBadNode(String address, NodeType nodeType, String reason) {
         Optional<NodeInfo> any = findNodeInfoByAddress(address);
         if (any.isPresent()) {
+            log.debug(any.get().toString());
             return any.get().getErrorReason().add((reason == null || reason.isEmpty()) ? "Empty reason" : reason);
         }
         return !errorNodes.add(new NodeInfo(address, nodeType, Arrays.asList(reason)));
@@ -245,6 +246,11 @@ public class Uptime {
         SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), "Startup. All nodes in error will be shown fully in this first run.");
         int counter = 0;
         boolean isReportingLoop;
+        try {
+            Thread.sleep(10000); //wait 10 seconds so that tor is started
+        } catch (InterruptedException e) {
+            log.error("Failed during initial sleep", e);
+        }
         while (true) {
             try {
                 log.info("Starting checks...");
