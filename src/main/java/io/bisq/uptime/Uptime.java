@@ -54,9 +54,9 @@ public class Uptime {
     );
 
     public static List<String> seedNodes = Arrays.asList(
-        //    "5quyxpxheyvzmb2d.onion:8000", // @mrosseel
-         //   "ef5qnzx6znifo3df.onion:8000", // @alexej996
-         //   "s67qglwhkgkyvr74.onion:8000", // @emzy
+            //    "5quyxpxheyvzmb2d.onion:8000", // @mrosseel
+            //   "ef5qnzx6znifo3df.onion:8000", // @alexej996
+            //   "s67qglwhkgkyvr74.onion:8000", // @emzy
             "jhgcy2won7xnslrb.onion:8000", // @sqrrm
             "jhgcy2won7xnslr.onion:8000" // @sqrrm ERROR
     );
@@ -104,7 +104,9 @@ public class Uptime {
         }
     }
 
-    /** NOTE: does not work on MAC netcat version */
+    /**
+     * NOTE: does not work on MAC netcat version
+     */
     public void checkSeedNodes(List<String> addresses) {
         NodeType nodeType = NodeType.SEED_NODE;
         for (String address : addresses) {
@@ -194,14 +196,14 @@ public class Uptime {
 
     private boolean isAlreadyBadNode(String address, NodeType nodeType, String reason) {
         Optional<NodeInfo> any = findNodeInfoByAddress(address);
-        if(any.isPresent()) {
-            return any.get().getErrorReason().add((reason == null || reason.isEmpty())?"Empty reason":reason);
+        if (any.isPresent()) {
+            return any.get().getErrorReason().add((reason == null || reason.isEmpty()) ? "Empty reason" : reason);
         }
         return !errorNodes.add(new NodeInfo(address, nodeType, Arrays.asList(reason)));
     }
 
     private String appendBadNodesSizeToString(String body) {
-        return body + " (now " + errorNodes.size() + " node(s) have errors, next check in +/-" + Math.round(LOOP_SLEEP_SECONDS/60) + " minutes)";
+        return body + " (now " + errorNodes.size() + " node(s) have errors, next check in +/-" + Math.round(LOOP_SLEEP_SECONDS / 60) + " minutes)";
     }
 
     public String printErrorNodes() {
@@ -231,7 +233,7 @@ public class Uptime {
 
         ENABLE_SLACK = options.has(USE_SLACK) ? (boolean) options.valueOf(USE_SLACK) : false;
         log.info("Slack usage is set to {}", ENABLE_SLACK);
-        if(ENABLE_SLACK && options.has(SLACK_SECRET)) {
+        if (ENABLE_SLACK && options.has(SLACK_SECRET)) {
             String secret = (String) options.valueOf(SLACK_SECRET);
             log.info("Using slack secret: {}", secret);
             api = new SlackApi(secret);
@@ -264,15 +266,14 @@ public class Uptime {
                         SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), "No errors");
                     }
                 }
-
-                try {
-                    Thread.sleep(1000 * LOOP_SLEEP_SECONDS);
-                } catch (InterruptedException e) {
-                    log.error("Error during sleep", e);
-                }
-                counter++;
             } catch (Throwable e) {
                 log.error("Could not send message to slack", e);
+            }
+            counter++;
+            try {
+                Thread.sleep(1000 * LOOP_SLEEP_SECONDS);
+            } catch (InterruptedException e) {
+                log.error("Error during sleep", e);
             }
         }
     }
