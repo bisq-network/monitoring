@@ -156,8 +156,10 @@ public class Uptime {
     private ProcessResult executeProcess(String command, int timeoutSeconds) {
         Process pr = null;
         boolean noTimeout = false;
+        int exitValue = 0;
         try {
             pr = rt.exec(command);
+            exitValue = pr.exitValue();
             noTimeout = pr.waitFor(timeoutSeconds, TimeUnit.SECONDS);
         } catch (IOException e) {
             return new ProcessResult("", e.getMessage());
@@ -167,7 +169,7 @@ public class Uptime {
         if (!noTimeout) {
             return new ProcessResult(null, "Timeout");
         }
-        return new ProcessResult(convertStreamToString(pr.getInputStream()), null);
+        return new ProcessResult(convertStreamToString(pr.getInputStream()),  (exitValue != 0)?"Exit value is "+exitValue:null);
     }
 
     static String convertStreamToString(java.io.InputStream is) {
@@ -185,7 +187,8 @@ public class Uptime {
     private void markAsGoodNode(NodeType nodeType, String address) {
         Optional<NodeInfo> any = findNodeInfoByAddress(address);
         if (any.isPresent()) {
-            boolean removed = errorNodes.remove(any.get());
+            errorNodes.remove(any.get());
+            log.info("Fixed: {} {}", nodeType.getPrettyName(), address);
             SlackTool.send(api, "Fixed: " + nodeType.getPrettyName() + " " + address, appendBadNodesSizeToString("No longer in error"));
         }
     }
