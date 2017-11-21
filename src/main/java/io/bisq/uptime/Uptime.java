@@ -219,10 +219,10 @@ public class Uptime {
         parser.allowsUnrecognizedOptions();
         final String USE_SLACK = "useSlack";
         parser.accepts(USE_SLACK, "Output is posted to a slack channel")
-                .withRequiredArg();
+                .withRequiredArg().ofType(Boolean.class);
         final String SLACK_SECRET = "slackSecret";
         parser.accepts(SLACK_SECRET, "The slack secret URL")
-                .withRequiredArg();
+                .withRequiredArg().ofType(String.class);
 
         OptionSet options;
         try {
