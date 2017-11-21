@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     torsocks \
     python-dev \
     build-essential \
+    netcat \
     python-pip && rm -rf /var/lib/apt/lists/*
 
 RUN git clone https://github.com/mrosseel/bisq-uptime.git
