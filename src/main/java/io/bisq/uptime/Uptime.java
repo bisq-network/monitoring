@@ -159,8 +159,8 @@ public class Uptime {
         int exitValue = 0;
         try {
             pr = rt.exec(command);
-            exitValue = pr.exitValue();
             noTimeout = pr.waitFor(timeoutSeconds, TimeUnit.SECONDS);
+            exitValue = pr.exitValue();
         } catch (IOException e) {
             return new ProcessResult("", e.getMessage());
         } catch (InterruptedException e) {
