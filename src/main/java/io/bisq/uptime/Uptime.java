@@ -54,11 +54,10 @@ public class Uptime {
     );
 
     public static List<String> seedNodes = Arrays.asList(
-            //    "5quyxpxheyvzmb2d.onion:8000", // @mrosseel
-            //   "ef5qnzx6znifo3df.onion:8000", // @alexej996
-            //   "s67qglwhkgkyvr74.onion:8000", // @emzy
-            "jhgcy2won7xnslrb.onion:8000", // @sqrrm
-            "jhgcy2won7xnslr.onion:8000" // @sqrrm ERROR
+            "5quyxpxheyvzmb2d.onion:8000", // @mrosseel
+            "ef5qnzx6znifo3df.onion:8000", // @alexej996
+            "s67qglwhkgkyvr74.onion:8000", // @emzy
+            "jhgcy2won7xnslrb.onion:8000" // @sqrrm
     );
 
     Set<NodeInfo> errorNodes = new HashSet<>();
@@ -169,7 +168,7 @@ public class Uptime {
             return new ProcessResult(null, "Timeout");
         }
         exitValue = pr.exitValue();
-        return new ProcessResult(convertStreamToString(pr.getInputStream()),  (exitValue != 0)?"Exit value is "+exitValue:null);
+        return new ProcessResult(convertStreamToString(pr.getInputStream()), (exitValue != 0) ? "Exit value is " + exitValue : null);
     }
 
     static String convertStreamToString(java.io.InputStream is) {
