@@ -221,7 +221,7 @@ public class Uptime {
                 .withRequiredArg().ofType(Boolean.class);
         final String SLACK_SECRET = "slackSecret";
         parser.accepts(SLACK_SECRET, "The slack secret URL")
-                .withRequiredArg().ofType(String.class);
+                .withOptionalArg().ofType(String.class);
 
         OptionSet options;
         try {
@@ -234,12 +234,16 @@ public class Uptime {
             return;
         }
 
+        //
         ENABLE_SLACK = options.has(USE_SLACK) ? (boolean) options.valueOf(USE_SLACK) : false;
-        log.info("Slack usage is set to {}", ENABLE_SLACK);
-        if (ENABLE_SLACK && options.has(SLACK_SECRET)) {
-            String secret = (String) options.valueOf(SLACK_SECRET);
-            log.info("Using slack secret: {}", secret);
+        String secret = (options.has(SLACK_SECRET) && options.hasArgument(SLACK_SECRET)) ? (String) options.valueOf(SLACK_SECRET) : null;
+
+        if (ENABLE_SLACK && secret != null) {
+            log.info("Slack enabled, Using slack secret: {}", secret);
             api = new SlackApi(secret);
+        } else if(ENABLE_SLACK){
+            log.info("Slack disabled due to missing slack secret");
+            ENABLE_SLACK = false;
         }
 
         Uptime uptime = new Uptime();
