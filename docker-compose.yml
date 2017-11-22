@@ -1,4 +1,4 @@
-version: '3'
+version: '2'
 
 # There should be an environment variable called SLACK_URL
 
@@ -9,8 +9,4 @@ services:
         image: bisq:uptime
         environment:
           - SLACK_URL
-#    uptime-entropy:
-#      restart: always
-#     image: harbur/haveged:1.7c-1
-#     container_name: haveged-entropy
-#     privileged: true
+
