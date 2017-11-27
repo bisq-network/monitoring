@@ -70,7 +70,7 @@ public class NodeInfo implements Comparable<NodeInfo> {
             return false;
         }
         setErrorMinutesSinceStart(getErrorMinutesSinceStart()
-                + ChronoUnit.MINUTES.between(LocalDateTime.now(), getLastErrorTime().get()));
+                + ChronoUnit.MINUTES.between(getLastErrorTime().get(), LocalDateTime.now()));
         setLastErrorTime(Optional.empty());
         getErrorReason().clear();
         return true;
