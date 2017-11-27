@@ -137,7 +137,7 @@ public class Uptime {
                 log.info(resultString.toString());
                 String[] splitResult = resultString.split(",");
                 if (splitResult.length != 4) {
-                    handleError(nodeType, address, "Incorrect result length:" + resultString);
+                    handleError(nodeType, address, "Could not parse node output:" + resultString);
                     continue;
                 }
                 result.setVersion(splitResult[1]);
