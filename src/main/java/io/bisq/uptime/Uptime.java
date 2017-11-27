@@ -216,8 +216,8 @@ public class Uptime {
         return "Nodes in error: *" + errorCount + "*. Monitoring node started at: " + startTime.toString() + "\n" +
                 allNodes.stream().sorted().map(nodeInfo -> padRight(nodeInfo.getNodeType().getPrettyName(), 15)
                         + "\t|\t`" + padRight(nodeInfo.getAddress(), 27)
-                        + " Has error: " + (nodeInfo.hasError() ? "*Yes*" : "No")
-                        + "` # errors: " + padRight(String.valueOf(nodeInfo.getNrErrorsSinceStart()), 5)
+                        + "` Has error: " + (nodeInfo.hasError() ? "*Yes*" : "No ")
+                        + " #errors: " + padRight(String.valueOf(nodeInfo.getNrErrorsSinceStart()), 5)
                         + "\t# error minutes: " + padRight(String.valueOf(nodeInfo.getErrorMinutesSinceStart()), 6)
                         + ((nodeInfo.getErrorReason().size() > 0) ? " reasons: " + nodeInfo.getReasonListAsString() : ""))
                         .collect(Collectors.joining("\n"));
@@ -287,9 +287,9 @@ public class Uptime {
             try {
                 log.info("Starting checks...");
                 uptime.checkPriceNodes(onionPriceNodes, true);
-                //uptime.checkClearnetBitcoinNodes(clearnetBitcoinNodes);
-                //uptime.checkOnionBitcoinNodes(onionBitcoinNodes);
-                //uptime.checkSeedNodes(seedNodes);
+                uptime.checkClearnetBitcoinNodes(clearnetBitcoinNodes);
+                uptime.checkOnionBitcoinNodes(onionBitcoinNodes);
+                uptime.checkSeedNodes(seedNodes);
                 log.info("Stopping checks, now sleeping for {} seconds.", LOOP_SLEEP_SECONDS);
 
                 // prepare reporting
