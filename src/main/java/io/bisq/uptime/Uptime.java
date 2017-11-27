@@ -211,10 +211,10 @@ public class Uptime {
         if(errorCount == 0) {
             return "";
         }
-        return "Nodes in error: " + errorCount + "\n" +
+        return "Nodes in error: *" + errorCount + "*\n" +
                 allNodes.stream().sorted().map(nodeInfo -> padRight(nodeInfo.getNodeType().getPrettyName(), 15)
-                + "|\t" + padRight(nodeInfo.getAddress(), 30)
-                + "# errors: " + padRight(String.valueOf(nodeInfo.getNrErrorsSinceStart()), 5)
+                + "|\t`" + padRight(nodeInfo.getAddress(), 30)
+                + "`# errors: " + padRight(String.valueOf(nodeInfo.getNrErrorsSinceStart()), 5)
                 + "# error minutes: " + padRight(String.valueOf(nodeInfo.getErrorMinutesSinceStart()), 6)
                 + ((nodeInfo.getErrorReason().size() > 0)?" reasons: " + nodeInfo.getReasonListAsString(): ""))
                         .collect(Collectors.joining("\n"));
