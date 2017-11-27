@@ -287,9 +287,9 @@ public class Uptime {
             try {
                 log.info("Starting checks...");
                 uptime.checkPriceNodes(onionPriceNodes, true);
-                uptime.checkClearnetBitcoinNodes(clearnetBitcoinNodes);
-                uptime.checkOnionBitcoinNodes(onionBitcoinNodes);
-                uptime.checkSeedNodes(seedNodes);
+                //uptime.checkClearnetBitcoinNodes(clearnetBitcoinNodes);
+                //uptime.checkOnionBitcoinNodes(onionBitcoinNodes);
+                //uptime.checkSeedNodes(seedNodes);
                 log.info("Stopping checks, now sleeping for {} seconds.", LOOP_SLEEP_SECONDS);
 
                 // prepare reporting
