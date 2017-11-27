@@ -66,7 +66,7 @@ public class NodeInfo implements Comparable<NodeInfo> {
 
     public boolean clearError() {
         if(!getLastErrorTime().isPresent()) {
-            log.warn("No error time was present when calling clearError");
+            log.debug("No error time was present when calling clearError");
             return false;
         }
         setErrorMinutesSinceStart(getErrorMinutesSinceStart()
@@ -77,7 +77,7 @@ public class NodeInfo implements Comparable<NodeInfo> {
     }
 
     public String getReasonListAsString() {
-        return errorReason.stream().collect(Collectors.joining("\n"));
+        return errorReason.stream().collect(Collectors.joining(" | "));
     }
 }
 

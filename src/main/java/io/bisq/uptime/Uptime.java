@@ -203,11 +203,11 @@ public class Uptime {
     }
 
     private String appendBadNodesSizeToString(String body) {
-        return body + " (now " + allNodes.size() + " node(s) have errors, next check in +/-" + Math.round(LOOP_SLEEP_SECONDS / 60) + " minutes)";
+        return body + " (now " + getErrorCount() + " node(s) have errors, next check in +/-" + Math.round(LOOP_SLEEP_SECONDS / 60) + " minutes)";
     }
 
-    public String printErrorNodes() {
-        long errorCount = allNodes.stream().filter(nodeInfo -> nodeInfo.hasError()).count();
+    public String printAllNodeStatus() {
+        long errorCount = getErrorCount();
         if(errorCount == 0) {
             return "";
         }
@@ -217,7 +217,11 @@ public class Uptime {
                 + "# errors: " + padRight(String.valueOf(nodeInfo.getNrErrorsSinceStart()), 5)
                 + "# error minutes: " + padRight(String.valueOf(nodeInfo.getErrorMinutesSinceStart()), 6)
                 + ((nodeInfo.getErrorReason().size() > 0)?" reasons: " + nodeInfo.getReasonListAsString(): ""))
-                        .collect(Collectors.joining(" | "));
+                        .collect(Collectors.joining("\n"));
+    }
+
+    private long getErrorCount() {
+        return allNodes.stream().filter(nodeInfo -> nodeInfo.hasError()).count();
     }
 
     private String padRight(String s, int padding) {
@@ -288,10 +292,10 @@ public class Uptime {
                 // prepare reporting
                 isReportingLoop = (counter % REPORTING_NR_LOOPS == 0);
                 if (isReportingLoop) {
-                    String errorNodeOutputString = uptime.printErrorNodes();
+                    String errorNodeOutputString = uptime.printAllNodeStatus();
                     if (!errorNodeOutputString.isEmpty()) {
                         log.info("Nodes in error: \n{}", errorNodeOutputString);
-                        SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), "Nodes in error: \n" + errorNodeOutputString);
+                        SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), errorNodeOutputString);
                     } else {
                         log.info("No errors");
                         SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), "No errors");
