@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import net.gpedro.integrations.slack.SlackApi;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -62,6 +63,7 @@ public class Uptime {
 
     Set<NodeInfo> allNodes = new HashSet<>();
     HashMap<String, String> errorNodeMap = new HashMap<>();
+    LocalDateTime startTime = LocalDateTime.now();
 
     public void checkClearnetBitcoinNodes(List<String> ipAddresses) {
         checkBitcoinNode(ipAddresses, false);
@@ -185,7 +187,7 @@ public class Uptime {
 
     private void markAsGoodNode(NodeType nodeType, String address) {
         Optional<NodeInfo> any = findNodeInfoByAddress(address);
-        if (any.isPresent()) {
+        if (any.isPresent() && any.get().hasError()) {
             any.get().clearError();
             log.info("Fixed: {} {}", nodeType.getPrettyName(), address);
             SlackTool.send(api, "Fixed: " + nodeType.getPrettyName() + " " + address, appendBadNodesSizeToString("No longer in error"));
@@ -206,17 +208,18 @@ public class Uptime {
         return body + " (now " + getErrorCount() + " node(s) have errors, next check in +/-" + Math.round(LOOP_SLEEP_SECONDS / 60) + " minutes)";
     }
 
-    public String printAllNodeStatus() {
+    public String printAllNodesReport() {
         long errorCount = getErrorCount();
-        if(errorCount == 0) {
+        if (errorCount == 0) {
             return "";
         }
-        return "Nodes in error: *" + errorCount + "*\n" +
+        return "Nodes in error: *" + errorCount + "*. Monitoring node started at: " + startTime.toString() + "\n" +
                 allNodes.stream().sorted().map(nodeInfo -> padRight(nodeInfo.getNodeType().getPrettyName(), 15)
-                + "|\t`" + padRight(nodeInfo.getAddress(), 30)
-                + "`# errors: " + padRight(String.valueOf(nodeInfo.getNrErrorsSinceStart()), 5)
-                + "# error minutes: " + padRight(String.valueOf(nodeInfo.getErrorMinutesSinceStart()), 6)
-                + ((nodeInfo.getErrorReason().size() > 0)?" reasons: " + nodeInfo.getReasonListAsString(): ""))
+                        + "\t|\t`" + padRight(nodeInfo.getAddress(), 27)
+                        + " Has error: " + (nodeInfo.hasError() ? "*Yes*" : "No")
+                        + "` # errors: " + padRight(String.valueOf(nodeInfo.getNrErrorsSinceStart()), 5)
+                        + "\t# error minutes: " + padRight(String.valueOf(nodeInfo.getErrorMinutesSinceStart()), 6)
+                        + ((nodeInfo.getErrorReason().size() > 0) ? " reasons: " + nodeInfo.getReasonListAsString() : ""))
                         .collect(Collectors.joining("\n"));
     }
 
@@ -292,7 +295,7 @@ public class Uptime {
                 // prepare reporting
                 isReportingLoop = (counter % REPORTING_NR_LOOPS == 0);
                 if (isReportingLoop) {
-                    String errorNodeOutputString = uptime.printAllNodeStatus();
+                    String errorNodeOutputString = uptime.printAllNodesReport();
                     if (!errorNodeOutputString.isEmpty()) {
                         log.info("Nodes in error: \n{}", errorNodeOutputString);
                         SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), errorNodeOutputString);
