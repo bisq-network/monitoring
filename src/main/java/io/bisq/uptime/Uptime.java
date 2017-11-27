@@ -60,7 +60,7 @@ public class Uptime {
             "jhgcy2won7xnslrb.onion:8000" // @sqrrm
     );
 
-    Set<NodeInfo> errorNodes = new HashSet<>();
+    Set<NodeInfo> allNodes = new HashSet<>();
     HashMap<String, String> errorNodeMap = new HashMap<>();
 
     public void checkClearnetBitcoinNodes(List<String> ipAddresses) {
@@ -119,7 +119,7 @@ public class Uptime {
     }
 
     private void checkBitcoinNode(List<String> ipAddresses, boolean overTor) {
-        NodeType nodeType = NodeType.BITCOIN_NODE;
+        NodeType nodeType = NodeType.BTC_NODE;
         for (String address : ipAddresses) {
             BitcoinNodeResult result = new BitcoinNodeResult();
             result.setAddress(address);
@@ -178,7 +178,7 @@ public class Uptime {
 
     public void handleError(NodeType nodeType, String address, String reason) {
         log.error("Error in {} {}, reason: {}", nodeType.toString(), address, reason);
-        if (!isAlreadyBadNode(address, nodeType, reason)) {
+        if (!isAlreadyBadNode(address, reason)) {
             SlackTool.send(api, "Error: " + nodeType.getPrettyName() + " " + address, appendBadNodesSizeToString(reason));
         }
     }
@@ -186,31 +186,43 @@ public class Uptime {
     private void markAsGoodNode(NodeType nodeType, String address) {
         Optional<NodeInfo> any = findNodeInfoByAddress(address);
         if (any.isPresent()) {
-            errorNodes.remove(any.get());
+            any.get().clearError();
             log.info("Fixed: {} {}", nodeType.getPrettyName(), address);
             SlackTool.send(api, "Fixed: " + nodeType.getPrettyName() + " " + address, appendBadNodesSizeToString("No longer in error"));
         }
     }
 
     private Optional<NodeInfo> findNodeInfoByAddress(String address) {
-        return errorNodes.stream().filter(nodeInfo -> nodeInfo.getAddress().equals(address)).findAny();
+        return allNodes.stream().filter(nodeInfo -> nodeInfo.getAddress().equals(address)).findAny();
     }
 
-    private boolean isAlreadyBadNode(String address, NodeType nodeType, String reason) {
+    private boolean isAlreadyBadNode(String address, String reason) {
         Optional<NodeInfo> any = findNodeInfoByAddress(address);
-        if (any.isPresent()) {
-            log.debug(any.get().toString());
-            return any.get().getErrorReason().add((reason == null || reason.isEmpty()) ? "Empty reason" : reason);
-        }
-        return !errorNodes.add(new NodeInfo(address, nodeType, Arrays.asList(reason)));
+        NodeInfo nodeInfo = any.get();
+        return nodeInfo.addError(reason);
     }
 
     private String appendBadNodesSizeToString(String body) {
-        return body + " (now " + errorNodes.size() + " node(s) have errors, next check in +/-" + Math.round(LOOP_SLEEP_SECONDS / 60) + " minutes)";
+        return body + " (now " + allNodes.size() + " node(s) have errors, next check in +/-" + Math.round(LOOP_SLEEP_SECONDS / 60) + " minutes)";
     }
 
     public String printErrorNodes() {
-        return errorNodes.stream().sorted().map(nodeInfo -> nodeInfo.getNodeType().toString() + "\t|\t" + nodeInfo.getAddress() + " : " + nodeInfo.getReasonListAsString()).collect(Collectors.joining("\n"));
+        long errorCount = allNodes.stream().filter(nodeInfo -> nodeInfo.hasError()).count();
+        if(errorCount == 0) {
+            return "";
+        }
+        return "Nodes in error: " + errorCount + "\n" +
+                allNodes.stream().sorted().map(nodeInfo -> padRight(nodeInfo.getNodeType().getPrettyName(), 15)
+                + "|\t" + padRight(nodeInfo.getAddress(), 30)
+                + "# errors: " + padRight(String.valueOf(nodeInfo.getNrErrorsSinceStart()), 5)
+                + "# error minutes: " + padRight(String.valueOf(nodeInfo.getErrorMinutesSinceStart()), 6)
+                + ((nodeInfo.getErrorReason().size() > 0)?" reasons: " + nodeInfo.getReasonListAsString(): ""))
+                        .collect(Collectors.joining(" | "));
+    }
+
+    private String padRight(String s, int padding) {
+        String formatString = "%1$-" + String.valueOf(padding) + "s";
+        return String.format(formatString, s);
     }
 
     public static void main(String[] args) throws IOException {
@@ -241,7 +253,7 @@ public class Uptime {
         if (ENABLE_SLACK && secret != null) {
             log.info("Slack enabled, Using slack secret: {}", secret);
             api = new SlackApi(secret);
-        } else if(ENABLE_SLACK){
+        } else if (ENABLE_SLACK) {
             log.info("Slack disabled due to missing slack secret");
             ENABLE_SLACK = false;
         }
@@ -252,6 +264,13 @@ public class Uptime {
         SlackTool.send(api, NodeType.MONITORING_NODE.getPrettyName(), "Startup. All nodes in error will be shown fully in this first run.");
         int counter = 0;
         boolean isReportingLoop;
+
+        // add all nodes to the node info list
+        uptime.allNodes.addAll(onionPriceNodes.stream().map(s -> new NodeInfo(s, NodeType.PRICE_NODE)).collect(Collectors.toList()));
+        uptime.allNodes.addAll(clearnetBitcoinNodes.stream().map(s -> new NodeInfo(s, NodeType.BTC_NODE)).collect(Collectors.toList()));
+        uptime.allNodes.addAll(onionBitcoinNodes.stream().map(s -> new NodeInfo(s, NodeType.BTC_NODE)).collect(Collectors.toList()));
+        uptime.allNodes.addAll(seedNodes.stream().map(s -> new NodeInfo(s, NodeType.SEED_NODE)).collect(Collectors.toList()));
+
         try {
             Thread.sleep(10000); //wait 10 seconds so that tor is started
         } catch (InterruptedException e) {
