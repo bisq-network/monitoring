@@ -30,5 +30,5 @@ WORKDIR ./src/main/python
 RUN pip install --upgrade setuptools && pip install -r requirements.txt
 WORKDIR /bisq-uptime/
 
-CMD ./start_tor.sh && java -cp ./target/bisq-uptime*.jar io.bisq.uptime.Uptime --useSlack true --slackSecret ${SLACK_URL}
+CMD ./start_tor.sh && java -cp ./target/bisq-uptime*.jar io.bisq.uptime.Uptime --useSlack true --slackPriceSecret ${SLACK_PRICE_URL}  --slackSeedSecret ${SLACK_SEED_URL}  --slackBTCSecret ${SLACK_BTC_URL}
 #CMD tail -f /dev/null

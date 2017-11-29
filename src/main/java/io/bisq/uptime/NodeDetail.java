@@ -16,7 +16,7 @@ import java.util.stream.Collectors;
  */
 @Data
 @Slf4j
-public class NodeInfo implements Comparable<NodeInfo> {
+public class NodeDetail implements Comparable<NodeDetail> {
     String address;
     NodeType nodeType;
     long nrErrorsSinceStart = 0;
@@ -26,13 +26,13 @@ public class NodeInfo implements Comparable<NodeInfo> {
 
     List<String> errorReason = new ArrayList<>();
 
-    public NodeInfo(String address, NodeType nodeType) {
+    public NodeDetail(String address, NodeType nodeType) {
         this.address = address;
         this.nodeType = nodeType;
     }
 
     @Override
-    public int compareTo(NodeInfo o) {
+    public int compareTo(NodeDetail o) {
         return getNodeType().compareTo(o.getNodeType());
     }
 

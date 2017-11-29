@@ -9,5 +9,7 @@ services:
         image: bisq:uptime
         container_name: uptime
         environment:
-          - SLACK_URL
+          - SLACK_PRICE_URL
+          - SLACK_SEED_URL
+          - SLACK_BTC_URL
 
