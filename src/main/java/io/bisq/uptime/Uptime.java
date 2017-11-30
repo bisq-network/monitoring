@@ -66,7 +66,7 @@ public class Uptime {
             "vlf5i3grro3wux24.onion",
             "3r44ddzjitznyahw.onion",
             "i3a5xtzfm4xwtybd.onion",
-            "7sl6havdhtgefwo2.onion"
+            "xc3nh4juf2hshy7e.onion" // STEPHAN
     );
 
     public static List<String> onionPriceNodes = Arrays.asList(
