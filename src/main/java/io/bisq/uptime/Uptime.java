@@ -15,7 +15,12 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
+
+import static spark.Spark.get;
+import static spark.Spark.port;
 
 /*
 
@@ -240,7 +245,10 @@ public class Uptime {
 
     private void markAsGoodNode(SlackApi api, NodeType nodeType, String address) {
         Optional<NodeDetail> any = findNodeInfoByAddress(address);
-        if (any.isPresent() && any.get().hasError()) {
+        if(NodeType.BTC_NODE.equals(nodeType) && any.get().hasError() && any.get().isFirstTimeOffender) {
+            // no slack logging
+            log.info("Fixed: {} {} (first time offender)", nodeType.getPrettyName(), address);
+        }else if (any.isPresent() && any.get().hasError()) {
             any.get().clearError();
             log.info("Fixed: {} {}", nodeType.getPrettyName(), address);
             SlackTool.send(api, "Fixed: " + nodeType.getPrettyName() + " " + address, appendBadNodesSizeToString("No longer in error"));
@@ -261,7 +269,7 @@ public class Uptime {
         return body + " (now " + getErrorCount() + " node(s) have errors, next check in +/-" + Math.round(LOOP_SLEEP_SECONDS / 60) + " minutes)";
     }
 
-    public String printAllNodesReport() {
+    public String printAllNodesReportSlack() {
         long errorCount = getErrorCount();
         if (errorCount == 0) {
             return "";
@@ -274,6 +282,28 @@ public class Uptime {
                         + "\t# error minutes: " + padRight(String.valueOf(nodeDetail.getErrorMinutesSinceStart()), 6)
                         + ((nodeDetail.getErrorReason().size() > 0) ? " reasons: " + nodeDetail.getReasonListAsString() : ""))
                         .collect(Collectors.joining("\n"));
+    }
+
+    public String printAllNodesReportHtml() {
+        long errorCount = getErrorCount();
+        if (errorCount == 0) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append("<html><body><h1>");
+        builder.append("Nodes in error: <b>" + errorCount + "</b><br/>Monitoring node started at: " + startTime.toString() +
+                "<br/><table style=\"width:100%\"><tr><th align=\"left\">Node Type</th><th align=\"left\">Address</th><th align=\"left\">Error?</th><th align=\"left\">Nr. of errors</th><th align=\"left\">Total error minutes</th><th align=\"left\">Reasons</th></tr>" +
+                allNodes.stream().sorted().map(nodeDetail -> "<tr>"
+                        +" <td>" + nodeDetail.getNodeType().getPrettyName() + "</td>"
+                        + "<td>" + nodeDetail.getAddress() + "</td>"
+                        + "<td>" + (nodeDetail.hasError() ? "<b>Yes</b>" : "") + "</td>"
+                        + "<td>" + String.valueOf(nodeDetail.getNrErrorsSinceStart()) + "</td>"
+                        + "<td>" + String.valueOf(nodeDetail.getErrorMinutesSinceStart()) + "</td>"
+                        + "<td>" + ((nodeDetail.getErrorReason().size() > 0) ? " reasons: " + nodeDetail.getReasonListAsString() : "") + "</td>"
+                        + "</tr>")
+                        .collect(Collectors.joining("")));
+        builder.append("</table></body></html>");
+        return builder.toString();
     }
 
     private long getErrorCount() {
@@ -359,6 +389,12 @@ public class Uptime {
         } catch (InterruptedException e) {
             log.error("Failed during initial sleep", e);
         }
+        port(8080);
+        get("/ping", (req, res) -> "pong");
+        get("/status", (req, res) -> uptime.printAllNodesReportHtml());
+        Logger.getLogger("org").setLevel(Level.OFF);
+        Logger.getLogger("akka").setLevel(Level.OFF);
+
         while (true) {
             try {
                 log.info("Starting checks...");

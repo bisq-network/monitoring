@@ -8,6 +8,8 @@ services:
             context: .
         image: bisq:uptime
         container_name: uptime
+        ports:
+          - 8080:8080
         environment:
           - SLACK_PRICE_URL
           - SLACK_SEED_URL
