@@ -51,6 +51,7 @@ public class Uptime {
 
     public static List<String> clearnetBitcoinNodes = Arrays.asList(
             "138.68.117.247",
+            "178.62.34.210", // same as 138
             "78.47.61.83",
             "174.138.35.229",
             "80.233.134.60",
@@ -226,9 +227,15 @@ public class Uptime {
 
     public void handleError(SlackApi api, NodeType nodeType, String address, String reason) {
         log.error("Error in {} {}, reason: {}", nodeType.toString(), address, reason);
-        if (!isAlreadyBadNode(address, reason)) {
+        NodeDetail node = getNode(address);
+
+        if (NodeType.BTC_NODE.equals(nodeType) && node.hasError() && node.isFirstTimeOffender) {
+            SlackTool.send(api, "Error: " + nodeType.getPrettyName() + " " + address + " failed twice", appendBadNodesSizeToString(reason));
+
+        } else if (node.hasError()) {
             SlackTool.send(api, "Error: " + nodeType.getPrettyName() + " " + address, appendBadNodesSizeToString(reason));
         }
+        node.addError(reason);
     }
 
     private void markAsGoodNode(SlackApi api, NodeType nodeType, String address) {
@@ -238,16 +245,16 @@ public class Uptime {
             log.info("Fixed: {} {}", nodeType.getPrettyName(), address);
             SlackTool.send(api, "Fixed: " + nodeType.getPrettyName() + " " + address, appendBadNodesSizeToString("No longer in error"));
         }
+        log.info("{} with address {} is OK", nodeType.getPrettyName(), address);
     }
 
     private Optional<NodeDetail> findNodeInfoByAddress(String address) {
         return allNodes.stream().filter(nodeDetail -> nodeDetail.getAddress().equals(address)).findAny();
     }
 
-    private boolean isAlreadyBadNode(String address, String reason) {
+    private NodeDetail getNode(String address) {
         Optional<NodeDetail> any = findNodeInfoByAddress(address);
-        NodeDetail nodeDetail = any.get();
-        return nodeDetail.addError(reason);
+        return any.get();
     }
 
     private String appendBadNodesSizeToString(String body) {
