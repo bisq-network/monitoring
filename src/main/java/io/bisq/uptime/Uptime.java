@@ -65,13 +65,13 @@ public class Uptime {
             "r3dsojfhwcm7x7p6.onion",
             "vlf5i3grro3wux24.onion",
             "3r44ddzjitznyahw.onion",
-            "i3a5xtzfm4xwtybd.onion",
-            "xc3nh4juf2hshy7e.onion" // STEPHAN
+            "i3a5xtzfm4xwtybd.onion"
     );
 
     public static List<String> onionPriceNodes = Arrays.asList(
             "ceaanhbvluug4we6.onion",
-            "rb2l2qale2pqzjyo.onion"
+            "rb2l2qale2pqzjyo.onion",
+            "xc3nh4juf2hshy7e.onion"  // STEPHAN
     );
 
     public static List<String> seedNodes = Arrays.asList(
