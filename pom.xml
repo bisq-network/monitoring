@@ -4,10 +4,10 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.bisq</groupId>
-    <artifactId>bisq-uptime</artifactId>
+    <artifactId>bisq-monitoring</artifactId>
     <packaging>jar</packaging>
     <version>0.1</version>
-    <description>Bisq Uptime monitoring</description>
+    <description>Bisq Monitoring</description>
     <url>https://bisq.io</url>
 
     <organization>
